@@ -2,6 +2,7 @@ from lxml import html
 import requests
 import re
 from pager import pager
+import printepub
 
 reAnchor = re.compile("<a.+?>")
 reTable = re.compile("<table[\w\W]+<\/table>")
@@ -32,6 +33,8 @@ htmlfrag = re.sub("</a>", "", htmlfrag)
 htmlfrag = re.sub(reTable, "", htmlfrag)
 
 ePage = pager(htmlfrag, title)
+
+printepub.printEpub(ePage, title)
 
 with open('plots/plot%s.htm' % title, 'w') as f:
 	f.write(ePage)
