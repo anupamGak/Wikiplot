@@ -82,7 +82,4 @@ def printEpub(htmlcode="", title=""):
 	epub.writestr("META-INF/container.xml", container_xml)
 	epub.writestr("OEBPS/toc.ncx", toc_ncx)
 	epub.writestr("OEBPS/title.html", title_html % title)
-
-	with open("poster.jpg", 'r') as f:
-		epub.writestr("OEBPS/images/cover.jpg", f.read())
-	epub.close()
+  epub.write("poster.jpg")

@@ -1,5 +1,5 @@
 from lxml import html
-import requests
+import urllib2
 import re
 from pager import pager
 import printepub
@@ -14,6 +14,14 @@ schpage = html.parse("http://www.wikipedia.org").getroot()
 schpage.forms[0].fields['search'] = search
 
 wiki = html.parse(html.submit_form(schpage.forms[0])).getroot()
+
+#Getting the image
+imgURL = "http:"
+imgURL += wiki.xpath("//img[@class='thumbborder']/@src")[0]
+img = urllib2.urlopen(imgURL)
+with open('poster.jpg', 'w') as imgfile:
+	imgfile.write(img.read())
+
 
 #getting the movie title
 ttlcode = wiki.xpath("//h1")[0]
