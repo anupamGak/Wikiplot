@@ -9,7 +9,6 @@ reAnchor = re.compile("<a.+?>")
 reTable = re.compile("<table[\w\W]+<\/table>")
 
 search = raw_input("Search :")
-search += " (film)"
 
 schpage = html.parse("http://www.wikipedia.org").getroot()
 
@@ -23,7 +22,7 @@ soup = html.tostring(ttlcode)
 try:
 	title = ttlcode.xpath("i/text()")[0]
 except IndexError:
-	sys.exit("Error: No such movie found.")
+	sys.exit("Error: No such movie found. Try adding '(film)' to the end.")
 
 #Getting the plot paragraphs
 renodes = wiki.xpath("//h2[span='Plot']/following-sibling::*")
