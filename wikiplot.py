@@ -1,6 +1,7 @@
 from lxml import html
 import urllib2
 import re
+import sys
 from pager import pager
 import printepub
 
@@ -8,6 +9,7 @@ reAnchor = re.compile("<a.+?>")
 reTable = re.compile("<table[\w\W]+<\/table>")
 
 search = raw_input("Search :")
+search += " (film)"
 
 schpage = html.parse("http://www.wikipedia.org").getroot()
 
@@ -15,18 +17,13 @@ schpage.forms[0].fields['search'] = search
 
 wiki = html.parse(html.submit_form(schpage.forms[0])).getroot()
 
-#Getting the image
-imgURL = "http:"
-imgURL += wiki.xpath("//img[@class='thumbborder']/@src")[0]
-img = urllib2.urlopen(imgURL)
-with open('poster.jpg', 'w') as imgfile:
-	imgfile.write(img.read())
-
-
 #getting the movie title
 ttlcode = wiki.xpath("//h1")[0]
 soup = html.tostring(ttlcode)
-title = ttlcode.xpath("i/text()")[0]
+try:
+	title = ttlcode.xpath("i/text()")[0]
+except IndexError:
+	sys.exit("Error: No such movie found.")
 
 #Getting the plot paragraphs
 renodes = wiki.xpath("//h2[span='Plot']/following-sibling::*")
@@ -40,9 +37,16 @@ htmlfrag = re.sub(reAnchor, "", soup)
 htmlfrag = re.sub("</a>", "", htmlfrag)
 htmlfrag = re.sub(reTable, "", htmlfrag)
 
+author = raw_input("Author :")
 ePage = pager(htmlfrag, title)
 
-printepub.printEpub(ePage, title)
+metadata = {
+	"title" : title,
+	"author" : author
+}
+
+printepub.printEpub(ePage, metadata)
+
 
 with open('plots/plot%s.htm' % title, 'w') as f:
 	f.write(ePage)

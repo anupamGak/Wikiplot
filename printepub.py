@@ -14,8 +14,8 @@ container_xml = """<?xml version="1.0"?>
 content_opf = """<?xml version='1.0' encoding='utf-8'?>
 <package xmlns="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/"unique-identifier="bookid" version="2.0">
   <metadata>
-    <dc:title>Plot: %s</dc:title>
-    <dc:creator>Anupam Krishna</dc:creator>
+    <dc:title>Plot: %(title)s</dc:title>
+    <dc:creator>%(author)s</dc:creator>
     <dc:identifier id="bookid">urn:uuid:0cc33cbd-94e2-49c1-909a-72ae16bc2658</dc:identifier>
     <dc:language>en-US</dc:language>
   </metadata>
@@ -68,21 +68,17 @@ title_html = """<!DOCTYPE html>
 	<title>Title</title>
 </head>
 <body style = "text-align: center;">
-	<h1>%s</h1>
-	<p>Anupam Krishna</p>
+	<h1>%(title)s</h1>
+	<p>%(author)s</p>
 </body>
 </html>"""
 
-def printEpub(htmlcode="", title=""):
-	ttlAbr = title[0] + "".join(re.findall(reAbbr, title))
+def printEpub(htmlcode="", metadata={}):
+	ttlAbr = metadata['title'][0] + "".join(re.findall(reAbbr, metadata['title']))
 	epub = zipfile.ZipFile('epubs/plot_%s.epub' % ttlAbr, 'w')
 	epub.writestr("mimetype", "application/epub+zip")
 	epub.writestr("OEBPS/content.html", htmlcode)
-	epub.writestr("OEBPS/content.opf", content_opf % title)
+	epub.writestr("OEBPS/content.opf", content_opf % metadata)
 	epub.writestr("META-INF/container.xml", container_xml)
 	epub.writestr("OEBPS/toc.ncx", toc_ncx)
-	epub.writestr("OEBPS/title.html", title_html % title)
-
-	with open("poster.jpg", 'r') as f:
-		epub.writestr("OEBPS/images/cover.jpg", f.read())
-	epub.close()
+	epub.writestr("OEBPS/title.html", title_html % metadata)
