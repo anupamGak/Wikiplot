@@ -3,6 +3,7 @@ def pager(frag = "", title = ""):
 			  <html>
 				<head>
 				<title>Plot of %s</title>
+				<link rel="stylesheet" href="styles.css" type="text/css"/>
 			  </head>
 			  <body>""" % title
 

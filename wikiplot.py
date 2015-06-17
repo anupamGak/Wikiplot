@@ -1,6 +1,6 @@
 from lxml import html
-import urllib2
 import re
+from urllib2 import urlopen
 import sys
 from pager import pager
 import printepub
@@ -10,11 +10,13 @@ reTable = re.compile("<table[\w\W]+<\/table>")
 
 search = raw_input("Search :")
 
-schpage = html.parse("http://www.wikipedia.org").getroot()
+schpage = urlopen("https://www.wikipedia.org")
+schpage = html.parse(schpage).getroot()
 
 schpage.forms[0].fields['search'] = search
 
 wiki = html.parse(html.submit_form(schpage.forms[0])).getroot()
+print "Movie plot obtained"
 
 #getting the movie title
 ttlcode = wiki.xpath("//h1")[0]
@@ -36,17 +38,17 @@ htmlfrag = re.sub(reAnchor, "", soup)
 htmlfrag = re.sub("</a>", "", htmlfrag)
 htmlfrag = re.sub(reTable, "", htmlfrag)
 
-author = raw_input("Author :")
 ePage = pager(htmlfrag, title)
 
 metadata = {
 	"title" : title,
-	"author" : author
 }
 
-printepub.printEpub(ePage, metadata)
+choice = raw_input("Add to existing ebook? [y/n] : ")
 
+if choice == 'y':
+	printepub.printEpub(ePage, metadata)
+else:
+	printepub.newEpub(ePage, metadata)
 
-with open('plots/plot%s.htm' % title, 'w') as f:
-	f.write(ePage)
-print "Done!"
+print "Success!"

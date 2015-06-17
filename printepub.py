@@ -1,7 +1,11 @@
 import zipfile
 import re
+import os
 
-reAbbr = re.compile("(?<= )[A-Z]")
+reAbbr = re.compile(r"(?:\s|^)([A-Z])")
+reFlag = re.compile(r"<!--([a-z]+)-->")
+reCount = re.compile(r"<!--(\d{1,3})-->")
+reDropcap = re.compile(r"<p>(\w)")
 
 container_xml = """<?xml version="1.0"?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
@@ -14,19 +18,20 @@ container_xml = """<?xml version="1.0"?>
 content_opf = """<?xml version='1.0' encoding='utf-8'?>
 <package xmlns="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/"unique-identifier="bookid" version="2.0">
   <metadata>
-    <dc:title>Plot: %(title)s</dc:title>
-    <dc:creator>%(author)s</dc:creator>
+    <dc:title>Movie Plots</dc:title>
+    <dc:creator>WikiPlot</dc:creator>
     <dc:identifier id="bookid">urn:uuid:0cc33cbd-94e2-49c1-909a-72ae16bc2658</dc:identifier>
     <dc:language>en-US</dc:language>
   </metadata>
   <manifest>
     <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
     <item id="cover" href="title.html" media-type="application/xhtml+xml"/>
-    <item id="content" href="content.html" media-type="application/xhtml+xml"/>
+    <item id="css" href="styles.css" media-type="text/css"/>
+    <!--manifest-->
   </manifest>
   <spine toc="ncx">
     <itemref idref="cover" linear="no"/>
-    <itemref idref="content"/>
+    <!--spine-->
   </spine>
   <guide>
     <reference href="title.html" type="cover" title="Cover"/>
@@ -53,12 +58,7 @@ toc_ncx = """<?xml version='1.0' encoding='utf-8'?>
       </navLabel>
       <content src="title.html"/>
     </navPoint>
-    <navPoint id="navpoint-2" playOrder="2">
-      <navLabel>
-        <text>Content</text>
-      </navLabel>
-      <content src="content.html"/>
-    </navPoint>
+    <!--toc-->
   </navMap>
 </ncx>"""
 
@@ -68,17 +68,103 @@ title_html = """<!DOCTYPE html>
 	<title>Title</title>
 </head>
 <body style = "text-align: center;">
-	<h1>%(title)s</h1>
-	<p>%(author)s</p>
+	<h1>Movie Plots</h1>
+	<p>WikiPlot</p>
 </body>
 </html>"""
 
+styles_css = """
+#dropcap {
+	float : left;
+	font-size : 250%;
+}"""
+
+def filler(metadata={}):
+	metadata['navpoint'] = metadata['count'] + 1
+
+	manifest = '''<item id="movie-%(count)s" href="movie-%(count)s.html" media-type="application/xhtml+xml"/>
+    <!--manifest-->
+	<!--%(count)s-->''' % metadata
+
+	spine = '''<itemref idref="movie-%(count)s"/>
+	<!--spine-->''' % metadata
+
+	toc = '''<navPoint id="navpoint-%(navpoint)s" playOrder="%(navpoint)s">
+    <navLabel>
+        <text>%(title)s</text>
+    </navLabel>
+    <content src="movie-%(count)s.html"/>
+    </navPoint>
+    <!--toc-->''' % metadata
+
+	return {
+    	"manifest" : manifest,
+    	"spine" : spine,
+    	"toc" : toc
+    }
+
+
 def printEpub(htmlcode="", metadata={}):
-	ttlAbr = metadata['title'][0] + "".join(re.findall(reAbbr, metadata['title']))
-	epub = zipfile.ZipFile('epubs/plot_%s.epub' % ttlAbr, 'w')
+#	ttlAbr = "".join(re.findall(reAbbr, metadata['title']))
+	global content_opf, toc_ncx
+	epubin = zipfile.ZipFile('epubs/WikiPlots.epub', 'r')
+
+	content_opf = epubin.read("OEBPS/content.opf")
+	content_opf = re.sub(reFlag, r"%(\1)s", content_opf)
+	toc_ncx = epubin.read("OEBPS/toc.ncx")
+	toc_ncx = re.sub(reFlag, r"%(\1)s", toc_ncx)
+
+	metadata['count'] = int(re.findall(reCount, content_opf)[0]) + 1
+	content_opf = re.sub(reCount, "", content_opf)
+
+	metadata.update(filler(metadata))
+
+	content_opf = content_opf % metadata
+	toc_ncx = toc_ncx % metadata
+
+
+	epubout = zipfile.ZipFile('epubs/WikiPlots_new.epub', 'w')
+	epubout.writestr("mimetype", "application/epub+zip")
+	epubout.writestr("OEBPS/styles.css", styles_css)
+
+	filenames = [i for i in epubin.namelist() if ".html" in i]
+
+	for filename in filenames:
+		epubout.writestr(filename, epubin.read(filename))
+
+#	htmlcode = re.sub(reDropcap, r"<p><span id='dropcap'>\1</span>", htmlcode, count=1)
+
+	epubout.writestr("OEBPS/content.opf", content_opf % metadata)
+	epubout.writestr("META-INF/container.xml", container_xml)
+	epubout.writestr("OEBPS/toc.ncx", toc_ncx)
+	epubout.writestr("OEBPS/movie-%s.html" % metadata['count'], htmlcode)
+
+	epubin.close()
+	epubout.close()
+
+#	os.remove("epubs/WikiPlots.epub")
+	os.rename("epubs/WikiPlots_new.epub", "epubs/WikiPlots.epub")
+
+
+def newEpub(htmlcode="", metadata={}):
+	global content_opf, toc_ncx
+	content_opf = re.sub(reFlag, r"%(\1)s", content_opf)
+	toc_ncx = re.sub(reFlag, r"%(\1)s", toc_ncx)
+
+	metadata['count'] = 1
+
+	metadata.update(filler(metadata))
+
+	content_opf = content_opf % metadata
+	toc_ncx = toc_ncx % metadata
+
+#	htmlcode = re.sub(reDropcap, r"<p><span id='dropcap'>\1</span>", htmlcode, count=1)
+
+	epub = zipfile.ZipFile('epubs/WikiPlots.epub', 'w')
 	epub.writestr("mimetype", "application/epub+zip")
-	epub.writestr("OEBPS/content.html", htmlcode)
+	epub.writestr("OEBPS/movie-1.html", htmlcode)
 	epub.writestr("OEBPS/content.opf", content_opf % metadata)
 	epub.writestr("META-INF/container.xml", container_xml)
-	epub.writestr("OEBPS/toc.ncx", toc_ncx)
+	epub.writestr("OEBPS/toc.ncx", toc_ncx % metadata)
 	epub.writestr("OEBPS/title.html", title_html % metadata)
+	epub.writestr("OEBPS/styles.css", styles_css)
