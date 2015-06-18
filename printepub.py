@@ -77,7 +77,13 @@ styles_css = """
 #dropcap {
 	float : left;
 	font-size : 250%;
-}"""
+}
+
+p {
+	text-indent: 7%;
+}
+
+"""
 
 def filler(metadata={}):
 	metadata['navpoint'] = metadata['count'] + 1
