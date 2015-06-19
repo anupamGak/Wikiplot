@@ -2,18 +2,25 @@ from lxml import html
 import re
 from urllib2 import urlopen
 import sys
-from pager import pager
 import printepub
+import argparse
+from pager import pager
+
+parser = argparse.ArgumentParser(description="Extract the plot of a movie from its Wikipedia page")
+option = parser.add_mutually_exclusive_group()
+
+parser.add_argument("movie", type=str)
+option.add_argument("-n", "--new", action="store_true", help="Store the plot in a new epub file")
+option.add_argument("-a", "--app", action="store_true", help="Append to an existing epub file")
+args = parser.parse_args()
 
 reAnchor = re.compile("<a.+?>")
 reTable = re.compile("<table[\w\W]+<\/table>")
 
-search = raw_input("Search :")
-
 schpage = urlopen("https://www.wikipedia.org")
 schpage = html.parse(schpage).getroot()
 
-schpage.forms[0].fields['search'] = search
+schpage.forms[0].fields['search'] = args.movie
 
 wiki = html.parse(html.submit_form(schpage.forms[0])).getroot()
 print "Movie plot obtained"
@@ -44,11 +51,9 @@ metadata = {
 	"title" : title,
 }
 
-choice = raw_input("Add to existing ebook? [y/n] : ")
-
-if choice == 'y':
+if args.app:
 	printepub.printEpub(ePage, metadata)
-else:
+elif arg.new:
 	printepub.newEpub(ePage, metadata)
 
 print "Success!"
